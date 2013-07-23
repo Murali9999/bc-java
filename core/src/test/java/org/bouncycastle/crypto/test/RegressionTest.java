@@ -37,6 +37,7 @@ public class RegressionTest
         new DigestRandomNumberTest(),
         new SkipjackTest(),
         new BlowfishTest(),
+        new SimonTest(),
         new SpeckTest(),
         new TwofishTest(),
         new Threefish256Test(),
