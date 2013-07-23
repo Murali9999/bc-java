@@ -897,7 +897,7 @@ public class SimonEngine
         {
             if (keySizeBytes != 16 && keySizeBytes != 24 && keySizeBytes != 32)
             {
-                throw new IllegalArgumentException("Simon128 requires a key of 128, 196 or 256 bits.");
+                throw new IllegalArgumentException("Simon128 requires a key of 128, 192 or 256 bits.");
             }
             return (keySizeBytes == 16) ? 68 : ((keySizeBytes == 24) ? 69 : 72);
         }

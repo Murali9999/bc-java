@@ -922,7 +922,7 @@ public class SpeckEngine
         {
             if (keySizeBytes != 16 && keySizeBytes != 24 && keySizeBytes != 32)
             {
-                throw new IllegalArgumentException("Speck128 requires a key of 128, 196 or 256 bits.");
+                throw new IllegalArgumentException("Speck128 requires a key of 128, 192 or 256 bits.");
             }
         }
 
