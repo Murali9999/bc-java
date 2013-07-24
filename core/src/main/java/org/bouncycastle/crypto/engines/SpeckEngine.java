@@ -525,25 +525,6 @@ public class SpeckEngine
         }
     }
 
-    public static void main(String[] args)
-    {
-        Speck32Cipher c = new Speck32Cipher();
-        c.init(true, new byte[8]);
-
-        byte[] out = new byte[4];
-        byte[] in = {0x12, 0x34, (byte)0xab, (byte)0xcd};
-        c.processBlock(in, 0, out, 0);
-
-        // Speck128Cipher c = new Speck128Cipher();
-        // c.init(true, Hex.decode("0f0e0d0c0b0a0908 0706050403020100"));
-        //
-        // byte[] out = new byte[16];
-        // byte[] in = Hex.decode("6c61766975716520 7469206564616d20");
-        // c.processBlock(in, 0, out, 0);
-
-        // System.out.printf("out %s\n", new String(Hex.encode(out)));
-    }
-
     /**
      * Base class of Speck variants that fit in 64 bit Java longs: Speck128, Speck96.
      * <p>
