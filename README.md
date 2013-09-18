@@ -30,7 +30,7 @@ Oracle bug refs for broken Cipher stream behaviour:
  - http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=8016249 (CipherInputStream in decrypt mode fails on close with AEAD ciphers)
  - http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=8012900 (CICO ignores AAD in GCM mode)
 
-### [JCE AAD API support](https://github.com/timw/bc-java/commits/feature/aad-api) (July 3 2013)
+#### [JCE AAD API support](https://github.com/timw/bc-java/commits/feature/aad-api) (July 3 2013)
 
 [pull request](https://github.com/bcgit/bc-java/pull/31)
 
