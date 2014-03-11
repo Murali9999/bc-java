@@ -8,6 +8,12 @@ Pending contributions are in feature branches, accepted contributions live on on
 
 ### In Progress
 
+#### [JavaDoc and parameter validation for Scrypt.](https://github.com/timw/bc-java/commits/feature/scrypt-docs-params) (March 12 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/62)
+
+* JavaDoc, parameter validation and tests covering parameter validation for Scrypt.
+
 ### Experimental Stuff
 
 #### [Simon and Speck Ciphers](https://github.com/timw/bc-java/commits/feature/simon-speck) (24 July 2013)
@@ -19,6 +25,31 @@ Speck in 32/64 bit word variants performs well in Java, although slower than Thr
 Community cryptanalysis of Simon/Speck is at a very early stage, so not proposing this for BC at present.
 
 ### Accepted
+
+#### [SipHash KeyGenerator regs in JCE and spec docs](https://github.com/timw/bc-java/tree/contrib/siphash-jce) (March 12 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/66)
+
+* Add KeyGenerator registrations for SipHash in JCE API and add JCE SipHash algorithms to specs..
+
+#### [Support IDEA as a PGP block cipher](https://github.com/timw/bc-java/tree/contrib/idea-pgp) (March 12 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/65)
+
+* Support IDEA as a PGP block cipher and update IDEA patent verbiage now patent has expired.
+
+#### [Throw AEADBadTagException](https://github.com/timw/bc-java/tree/contrib/aead-exceptions) (March 12 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/64)
+
+* Throw AEADBadTagException if available from AEAD ciphers in JCE provider when authentication fails.
+
+#### [Fixes for AEAD output size calculations and use in cipher streams](https://github.com/timw/bc-java/tree/contrib/update-size-testing) (March 12 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/63)
+
+* More testing and buffer underflow fixes for lightweight and JCE CipherInputStream/CipherOutputStream
+* Consistent input/output range checking and improved documentation for AEAD implementations
 
 #### [Include ChaCha in regression tests](https://github.com/timw/bc-java/tree/contrib/chacha-in-regression) (October 20 2013)
 
