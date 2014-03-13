@@ -96,42 +96,35 @@ public class SipHash
         throws DataLengthException,
         IllegalStateException
     {
-        int i = 0, fullWords = length & ~7;
+        int i = 0;
+        if (wordPos != 0)
+        {
+            int rem = Math.min(length, 8 - wordPos);
+            for (; i < rem; ++i)
+            {
+                m >>>= 8;
+                m |= (input[offset + i] & 0xffL) << 56;
+            }
+            wordPos += rem;
+            if (wordPos == 8)
+            {
+                processMessageWord();
+                wordPos = 0;
+            }
+        }
         if (wordPos == 0)
         {
+            int fullWords = (length - i) & ~7;
             for (; i < fullWords; i += 8)
             {
                 m = Pack.littleEndianToLong(input, offset + i);
                 processMessageWord();
             }
+            wordPos = length - i;
             for (; i < length; ++i)
             {
                 m >>>= 8;
                 m |= (input[offset + i] & 0xffL) << 56;
-            }
-            wordPos = length - fullWords;
-        }
-        else
-        {
-            int bits = wordPos << 3;
-            for (; i < fullWords; i += 8)
-            {
-                long n = Pack.littleEndianToLong(input, offset + i);
-                m >>>= 64 - bits;
-                m |= n << bits;
-                processMessageWord();
-                m = n;
-            }
-            for (; i < length; ++i)
-            {
-                m >>>= 8;
-                m |= (input[offset + i] & 0xffL) << 56;
-
-                if (++wordPos == 8)
-                {
-                    processMessageWord();
-                    wordPos = 0;
-                }
             }
         }
     }
@@ -177,6 +170,7 @@ public class SipHash
 
     protected void processMessageWord()
     {
+        // System.err.println(Long.toHexString(m));
         ++wordCount;
         v3 ^= m;
         applySipRounds(c);
@@ -185,6 +179,11 @@ public class SipHash
 
     protected void applySipRounds(int n)
     {
+        long v0 = this.v0;
+        long v1 = this.v1;
+        long v2 = this.v2;
+        long v3 = this.v3;
+
         for (int r = 0; r < n; ++r)
         {
             v0 += v1;
@@ -202,6 +201,10 @@ public class SipHash
             v3 ^= v0;
             v2 = rotateLeft(v2, 32);
         }
+        this.v0 = v0;
+        this.v1 = v1;
+        this.v2 = v2;
+        this.v3 = v3;
     }
 
     protected static long rotateLeft(long x, int n)
