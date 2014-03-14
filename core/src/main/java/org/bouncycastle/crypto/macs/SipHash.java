@@ -87,7 +87,7 @@ public class SipHash
 
         if (++wordPos == 8)
         {
-            processMessageWord();
+            processMessageWord(m);
             wordPos = 0;
         }
     }
@@ -97,6 +97,7 @@ public class SipHash
         IllegalStateException
     {
         int i = 0;
+        long m = this.m;
         if (wordPos != 0)
         {
             int rem = Math.min(length, 8 - wordPos);
@@ -108,7 +109,7 @@ public class SipHash
             wordPos += rem;
             if (wordPos == 8)
             {
-                processMessageWord();
+                processMessageWord(m);
                 wordPos = 0;
             }
         }
@@ -118,7 +119,7 @@ public class SipHash
             for (; i < fullWords; i += 8)
             {
                 m = Pack.littleEndianToLong(input, offset + i);
-                processMessageWord();
+                processMessageWord(m);
             }
             wordPos = length - i;
             for (; i < length; ++i)
@@ -127,6 +128,7 @@ public class SipHash
                 m |= (input[offset + i] & 0xffL) << 56;
             }
         }
+        this.m = m;
     }
 
     public long doFinal()
@@ -135,7 +137,7 @@ public class SipHash
         m >>>= ((8 - wordPos) << 3);
         m |= (((wordCount << 3) + wordPos) & 0xffL) << 56;
 
-        processMessageWord();
+        processMessageWord(m);
 
         v2 ^= 0xffL;
 
@@ -168,7 +170,7 @@ public class SipHash
         wordCount = 0;
     }
 
-    protected void processMessageWord()
+    protected void processMessageWord(long m)
     {
         // System.err.println(Long.toHexString(m));
         ++wordCount;
