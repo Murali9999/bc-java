@@ -82,6 +82,7 @@ public class SipHash
     public void update(byte input)
         throws IllegalStateException
     {
+        // System.err.println(1 + " in");
         m >>>= 8;
         m |= (input & 0xffL) << 56;
 
@@ -96,17 +97,20 @@ public class SipHash
         throws DataLengthException,
         IllegalStateException
     {
+        // System.err.println(length + " in");
         int i = 0;
         long m = this.m;
+        i = offset;
         if (wordPos != 0)
         {
             int rem = Math.min(length, 8 - wordPos);
+            wordPos += rem;
+            rem += offset;
             for (; i < rem; ++i)
             {
                 m >>>= 8;
-                m |= (input[offset + i] & 0xffL) << 56;
+                m |= (input[i] & 0xffL) << 56;
             }
-            wordPos += rem;
             if (wordPos == 8)
             {
                 processMessageWord(m);
@@ -115,17 +119,18 @@ public class SipHash
         }
         if (wordPos == 0)
         {
-            int fullWords = (length - i) & ~7;
+            int end = length + offset;
+            int fullWords = ((end - i) & ~7) + offset;
             for (; i < fullWords; i += 8)
             {
-                m = Pack.littleEndianToLong(input, offset + i);
+                m = Pack.littleEndianToLong(input, i);
                 processMessageWord(m);
             }
-            wordPos = length - i;
-            for (; i < length; ++i)
+            wordPos = end - i;
+            for (; i < end; ++i)
             {
                 m >>>= 8;
-                m |= (input[offset + i] & 0xffL) << 56;
+                m |= (input[i] & 0xffL) << 56;
             }
         }
         this.m = m;
@@ -172,7 +177,7 @@ public class SipHash
 
     protected void processMessageWord(long m)
     {
-        // System.err.println(Long.toHexString(m));
+        // System.err.println("> " + Long.toHexString(m));
         ++wordCount;
         v3 ^= m;
         applySipRounds(c);
