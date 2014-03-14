@@ -23,8 +23,7 @@ public class SipHash
     protected long k0, k1;
     protected long v0, v1, v2, v3, v4;
 
-    protected long m = 0;
-    protected int wordPos = 0;
+    protected BufferedLong m = new SipHashBufferedLong();
     protected int wordCount = 0;
 
     /**
@@ -79,18 +78,84 @@ public class SipHash
         reset();
     }
 
+    public static abstract class BufferedLong
+    {
+        public long val;
+        protected int wordPos = 0;
+
+        public void update(byte input)
+        {
+            long m = this.val;
+            // System.err.println(1 + " in");
+            m >>>= 8;
+            m |= (input & 0xffL) << 56;
+
+            if (++wordPos == 8)
+            {
+                processWord(val);
+                wordPos = 0;
+            }
+
+        }
+
+        public void update(byte[] input, int offset, int length)
+        {
+            int i = 0;
+            long m = this.val;
+            i = offset;
+            if (wordPos != 0)
+            {
+                int rem = Math.min(length, 8 - wordPos);
+                wordPos += rem;
+                rem += offset;
+                for (; i < rem; ++i)
+                {
+                    m >>>= 8;
+                    m |= (input[i] & 0xffL) << 56;
+                }
+                if (wordPos == 8)
+                {
+                    processWord(m);
+                    wordPos = 0;
+                }
+            }
+            if (wordPos == 0)
+            {
+                int end = length + offset;
+                int fullWords = ((end - i) & ~7) + offset;
+                for (; i < fullWords; i += 8)
+                {
+                    m = Pack.littleEndianToLong(input, i);
+                    processWord(m);
+                }
+                wordPos = end - i;
+                for (; i < end; ++i)
+                {
+                    m >>>= 8;
+                    m |= (input[i] & 0xffL) << 56;
+                }
+            }
+            this.val = m;
+        }
+
+        protected abstract void processWord(long m);
+    }
+
+    public class SipHashBufferedLong
+        extends BufferedLong
+    {
+
+        protected void processWord(long m)
+        {
+            processMessageWord(m);
+        }
+
+    }
+
     public void update(byte input)
         throws IllegalStateException
     {
-        // System.err.println(1 + " in");
-        m >>>= 8;
-        m |= (input & 0xffL) << 56;
-
-        if (++wordPos == 8)
-        {
-            processMessageWord(m);
-            wordPos = 0;
-        }
+        m.update(input);
     }
 
     public void update(byte[] input, int offset, int length)
@@ -98,51 +163,19 @@ public class SipHash
         IllegalStateException
     {
         // System.err.println(length + " in");
-        int i = 0;
-        long m = this.m;
-        i = offset;
-        if (wordPos != 0)
-        {
-            int rem = Math.min(length, 8 - wordPos);
-            wordPos += rem;
-            rem += offset;
-            for (; i < rem; ++i)
-            {
-                m >>>= 8;
-                m |= (input[i] & 0xffL) << 56;
-            }
-            if (wordPos == 8)
-            {
-                processMessageWord(m);
-                wordPos = 0;
-            }
-        }
-        if (wordPos == 0)
-        {
-            int end = length + offset;
-            int fullWords = ((end - i) & ~7) + offset;
-            for (; i < fullWords; i += 8)
-            {
-                m = Pack.littleEndianToLong(input, i);
-                processMessageWord(m);
-            }
-            wordPos = end - i;
-            for (; i < end; ++i)
-            {
-                m >>>= 8;
-                m |= (input[i] & 0xffL) << 56;
-            }
-        }
-        this.m = m;
+        this.m.update(input, offset, length);
     }
 
     public long doFinal()
         throws DataLengthException, IllegalStateException
     {
-        m >>>= ((8 - wordPos) << 3);
-        m |= (((wordCount << 3) + wordPos) & 0xffL) << 56;
+        long m = this.m.val;
+        m >>>= ((8 - this.m.wordPos) << 3);
+        m |= (((wordCount << 3) + this.m.wordPos) & 0xffL) << 56;
 
         processMessageWord(m);
+
+        this.m.val = m;
 
         v2 ^= 0xffL;
 
@@ -170,8 +203,8 @@ public class SipHash
         v2 = k0 ^ 0x6c7967656e657261L;
         v3 = k1 ^ 0x7465646279746573L;
 
-        m = 0;
-        wordPos = 0;
+        m.val = 0;
+        m.wordPos = 0;
         wordCount = 0;
     }
 
