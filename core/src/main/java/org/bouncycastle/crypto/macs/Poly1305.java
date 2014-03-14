@@ -1,5 +1,7 @@
 package org.bouncycastle.crypto.macs;
 
+import java.lang.reflect.Field;
+
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.DataLengthException;
@@ -8,6 +10,8 @@ import org.bouncycastle.crypto.generators.Poly1305KeyGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.crypto.util.Pack;
+
+import sun.misc.Unsafe;
 
 /**
  * Poly1305 message authentication code, designed by D. J. Bernstein.
@@ -19,6 +23,7 @@ import org.bouncycastle.crypto.util.Pack;
  * The polynomial calculation in this implementation is adapted from the public domain <a
  * href="https://github.com/floodyberry/poly1305-donna">poly1305-donna-unrolled</a> C implementation
  * by Andrew M (@floodyberry).
+ *
  * @see Poly1305KeyGenerator
  */
 public class Poly1305
@@ -44,10 +49,10 @@ public class Poly1305
     // Accumulating state
 
     /** Current block of buffered input */
-    private final byte[] currentBlock = new byte[BLOCK_SIZE];
+    // private final byte[] currentBlock = new byte[BLOCK_SIZE];
 
     /** Current offset in input buffer */
-    private int currentBlockOffset = 0;
+    // private int currentBlockOffset = 0;
 
     /** Polynomial accumulator */
     private int h0, h1, h2, h3, h4;
@@ -74,7 +79,7 @@ public class Poly1305
 
     /**
      * Initialises the Poly1305 MAC.
-     * 
+     *
      * @param if used with a block cipher, then a {@link ParametersWithIV} containing a 128 bit
      *        nonce and a {@link KeyParameter} with a 256 bit key complying to the
      *        {@link Poly1305KeyGenerator Poly1305 key format}, otherwise just the
@@ -91,7 +96,7 @@ public class Poly1305
             {
                 throw new IllegalArgumentException("Poly1305 requires an IV when used with a block cipher.");
             }
-            
+
             ParametersWithIV ivParams = (ParametersWithIV)params;
             nonce = ivParams.getIV();
             params = ivParams.getParameters();
@@ -124,10 +129,17 @@ public class Poly1305
         int t2 = Pack.littleEndianToInt(key, BLOCK_SIZE + 8);
         int t3 = Pack.littleEndianToInt(key, BLOCK_SIZE + 12);
 
-        r0 = t0 & 0x3ffffff; t0 >>>= 26; t0 |= t1 << 6;
-        r1 = t0 & 0x3ffff03; t1 >>>= 20; t1 |= t2 << 12;
-        r2 = t1 & 0x3ffc0ff; t2 >>>= 14; t2 |= t3 << 18;
-        r3 = t2 & 0x3f03fff; t3 >>>= 8;
+        r0 = t0 & 0x3ffffff;
+        t0 >>>= 26;
+        t0 |= t1 << 6;
+        r1 = t0 & 0x3ffff03;
+        t1 >>>= 20;
+        t1 |= t2 << 12;
+        r2 = t1 & 0x3ffc0ff;
+        t2 >>>= 14;
+        t2 |= t3 << 18;
+        r3 = t2 & 0x3f03fff;
+        t3 >>>= 8;
         r4 = t3 & 0x00fffff;
 
         // Precompute multipliers
@@ -172,42 +184,172 @@ public class Poly1305
         update(singleByte, 0, 1);
     }
 
-    public void update(final byte[] in, final int inOff, final int len)
+    int t1, t2, t3, t4;
+    int blockPos;
+    int wordPos;
+
+    public void update(final byte[] input, final int offset, final int length)
         throws DataLengthException,
         IllegalStateException
     {
-        int copied = 0;
-        while (len > copied)
+        int i = offset;
+        if (wordPos != 0)
         {
-            if (currentBlockOffset == BLOCK_SIZE)
+            int w = 0;
+            switch (blockPos)
             {
-                processBlock();
-                currentBlockOffset = 0;
+            case 0:
+                w = t1;
+                break;
+            case 1:
+                w = t2;
+                break;
+            case 2:
+                w = t3;
+                break;
+            case 3:
+                w = t4;
+                break;
             }
-
-            int toCopy = Math.min((len - copied), BLOCK_SIZE - currentBlockOffset);
-            System.arraycopy(in, copied + inOff, currentBlock, currentBlockOffset, toCopy);
-            copied += toCopy;
-            currentBlockOffset += toCopy;
+            int rem = Math.min(length, 4 - wordPos);
+            wordPos += rem;
+            rem += offset;
+            for (; i < rem; ++i)
+            {
+                w >>>= 8;
+                w |= (input[i] & 0xffL) << 24;
+            }
+            switch (blockPos)
+            {
+            case 0:
+                t1 = w;
+                break;
+            case 1:
+                t2 = w;
+                break;
+            case 2:
+                t3 = w;
+                break;
+            case 3:
+                t4 = w;
+                break;
+            }
+            if (wordPos == 4)
+            {
+                ++blockPos;
+                wordPos = 0;
+                if (blockPos == 4)
+                {
+                    processBlock();
+                    blockPos = 0;
+                }
+            }
         }
-
+        if (wordPos == 0)
+        {
+            if (blockPos != 0)
+            {
+                int end = length + offset;
+                int remBlock = Math.min((end - i) & ~3, ((4 - blockPos) << 2) + offset);
+                for (; i < remBlock; i += 4)
+                {
+                    int w = unsafe.getInt(input, byteArrayOffset + i);
+                    switch (blockPos++)
+                    {
+                    case 1:
+                        t1 = w;
+                        break;
+                    case 2:
+                        t2 = w;
+                        break;
+                    case 3:
+                        t3 = w;
+                        processBlock();
+                        blockPos = 0;
+                        break;
+                    }
+                }
+            }
+            if (blockPos == 0)
+            {
+                int end = length + offset;
+                int fullBlocks = ((end - i) & ~15) + offset;
+                for (; i < fullBlocks; i += 16)
+                {
+                    t1 = unsafe.getInt(input, byteArrayOffset + i);
+                    t2 = unsafe.getInt(input, byteArrayOffset + i + 4);
+                    t3 = unsafe.getInt(input, byteArrayOffset + i + 8);
+                    t4 = unsafe.getInt(input, byteArrayOffset + i + 12);
+                    processBlock();
+                }
+                for (; i < (end - 4); i += 4)
+                {
+                    int w = unsafe.getInt(input, byteArrayOffset + i);
+                    switch (blockPos++)
+                    {
+                    case 0:
+                        t1 = w;
+                        break;
+                    case 1:
+                        t2 = w;
+                        break;
+                    case 2:
+                        t3 = w;
+                        break;
+                    }
+                }
+                wordPos = end - i;
+                if (wordPos > 0)
+                {
+                    int w = 0;
+                    for (; i < end; ++i)
+                    {
+                        w >>>= 4;
+                        w |= (input[i] & 0xffL) << 24;
+                    }
+                    switch (blockPos)
+                    {
+                    case 0:
+                        t1 = w;
+                        break;
+                    case 1:
+                        t2 = w;
+                        break;
+                    case 2:
+                        t3 = w;
+                        break;
+                    case 3:
+                        t4 = w;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
+    private static Unsafe unsafe;
+    private static long byteArrayOffset;
+
+    static
+    {
+        try
+        {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            unsafe = (Unsafe)field.get(null);
+            byteArrayOffset = unsafe.arrayBaseOffset(byte[].class);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
     private void processBlock()
     {
-        if (currentBlockOffset < BLOCK_SIZE)
-        {
-            currentBlock[currentBlockOffset] = 1;
-            for (int i = currentBlockOffset + 1; i < BLOCK_SIZE; i++)
-            {
-                currentBlock[i] = 0;
-            }
-        }
-
-        final long t0 = 0xffffffffL & Pack.littleEndianToInt(currentBlock, 0);
-        final long t1 = 0xffffffffL & Pack.littleEndianToInt(currentBlock, 4);
-        final long t2 = 0xffffffffL & Pack.littleEndianToInt(currentBlock, 8);
-        final long t3 = 0xffffffffL & Pack.littleEndianToInt(currentBlock, 12);
+        final long t0 = 0xffffffffL & t1;
+        final long t1 = 0xffffffffL & t2;
+        final long t2 = 0xffffffffL & t3;
+        final long t3 = 0xffffffffL & t4;
 
         h0 += t0 & 0x3ffffff;
         h1 += (((t1 << 32) | t0) >>> 26) & 0x3ffffff;
@@ -215,23 +357,37 @@ public class Poly1305
         h3 += (((t3 << 32) | t2) >>> 14) & 0x3ffffff;
         h4 += (t3 >>> 8);
 
-        if (currentBlockOffset == BLOCK_SIZE)
+        if (blockPos == 4)
         {
             h4 += (1 << 24);
         }
 
-        long tp0 = mul32x32_64(h0,r0) + mul32x32_64(h1,s4) + mul32x32_64(h2,s3) + mul32x32_64(h3,s2) + mul32x32_64(h4,s1);
-        long tp1 = mul32x32_64(h0,r1) + mul32x32_64(h1,r0) + mul32x32_64(h2,s4) + mul32x32_64(h3,s3) + mul32x32_64(h4,s2);
-        long tp2 = mul32x32_64(h0,r2) + mul32x32_64(h1,r1) + mul32x32_64(h2,r0) + mul32x32_64(h3,s4) + mul32x32_64(h4,s3);
-        long tp3 = mul32x32_64(h0,r3) + mul32x32_64(h1,r2) + mul32x32_64(h2,r1) + mul32x32_64(h3,r0) + mul32x32_64(h4,s4);
-        long tp4 = mul32x32_64(h0,r4) + mul32x32_64(h1,r3) + mul32x32_64(h2,r2) + mul32x32_64(h3,r1) + mul32x32_64(h4,r0);
+        long tp0 = mul32x32_64(h0, r0) + mul32x32_64(h1, s4) + mul32x32_64(h2, s3) + mul32x32_64(h3, s2)
+            + mul32x32_64(h4, s1);
+        long tp1 = mul32x32_64(h0, r1) + mul32x32_64(h1, r0) + mul32x32_64(h2, s4) + mul32x32_64(h3, s3)
+            + mul32x32_64(h4, s2);
+        long tp2 = mul32x32_64(h0, r2) + mul32x32_64(h1, r1) + mul32x32_64(h2, r0) + mul32x32_64(h3, s4)
+            + mul32x32_64(h4, s3);
+        long tp3 = mul32x32_64(h0, r3) + mul32x32_64(h1, r2) + mul32x32_64(h2, r1) + mul32x32_64(h3, r0)
+            + mul32x32_64(h4, s4);
+        long tp4 = mul32x32_64(h0, r4) + mul32x32_64(h1, r3) + mul32x32_64(h2, r2) + mul32x32_64(h3, r1)
+            + mul32x32_64(h4, r0);
 
         long b;
-        h0 = (int)tp0 & 0x3ffffff; b = (tp0 >>> 26);
-        tp1 += b; h1 = (int)tp1 & 0x3ffffff; b = ((tp1 >>> 26) & 0xffffffff);
-        tp2 += b; h2 = (int)tp2 & 0x3ffffff; b = ((tp2 >>> 26) & 0xffffffff);
-        tp3 += b; h3 = (int)tp3 & 0x3ffffff; b = (tp3 >>> 26);
-        tp4 += b; h4 = (int)tp4 & 0x3ffffff; b = (tp4 >>> 26);
+        h0 = (int)tp0 & 0x3ffffff;
+        b = (tp0 >>> 26);
+        tp1 += b;
+        h1 = (int)tp1 & 0x3ffffff;
+        b = ((tp1 >>> 26) & 0xffffffff);
+        tp2 += b;
+        h2 = (int)tp2 & 0x3ffffff;
+        b = ((tp2 >>> 26) & 0xffffffff);
+        tp3 += b;
+        h3 = (int)tp3 & 0x3ffffff;
+        b = (tp3 >>> 26);
+        tp4 += b;
+        h4 = (int)tp4 & 0x3ffffff;
+        b = (tp4 >>> 26);
         h0 += b * 5;
     }
 
@@ -244,27 +400,51 @@ public class Poly1305
             throw new DataLengthException("Output buffer is too short.");
         }
 
-        if (currentBlockOffset > 0)
-        {
-            // Process padded final block
-            processBlock();
-        }
+        // if (currentBlockOffset > 0)
+        // {
+        // // Process padded final block
+        // if (currentBlockOffset < BLOCK_SIZE)
+        // {
+        // currentBlock[currentBlockOffset] = 1;
+        // for (int i = currentBlockOffset + 1; i < BLOCK_SIZE; i++)
+        // {
+        // currentBlock[i] = 0;
+        // }
+        // }
+        // processBlock();
+        // }
 
         long f0, f1, f2, f3;
 
         int b = h0 >>> 26;
         h0 = h0 & 0x3ffffff;
-        h1 += b; b = h1 >>> 26; h1 = h1 & 0x3ffffff;
-        h2 += b; b = h2 >>> 26; h2 = h2 & 0x3ffffff;
-        h3 += b; b = h3 >>> 26; h3 = h3 & 0x3ffffff;
-        h4 += b; b = h4 >>> 26; h4 = h4 & 0x3ffffff;
+        h1 += b;
+        b = h1 >>> 26;
+        h1 = h1 & 0x3ffffff;
+        h2 += b;
+        b = h2 >>> 26;
+        h2 = h2 & 0x3ffffff;
+        h3 += b;
+        b = h3 >>> 26;
+        h3 = h3 & 0x3ffffff;
+        h4 += b;
+        b = h4 >>> 26;
+        h4 = h4 & 0x3ffffff;
         h0 += b * 5;
 
         int g0, g1, g2, g3, g4;
-        g0 = h0 + 5; b = g0 >>> 26; g0 &= 0x3ffffff;
-        g1 = h1 + b; b = g1 >>> 26; g1 &= 0x3ffffff;
-        g2 = h2 + b; b = g2 >>> 26; g2 &= 0x3ffffff;
-        g3 = h3 + b; b = g3 >>> 26; g3 &= 0x3ffffff;
+        g0 = h0 + 5;
+        b = g0 >>> 26;
+        g0 &= 0x3ffffff;
+        g1 = h1 + b;
+        b = g1 >>> 26;
+        g1 &= 0x3ffffff;
+        g2 = h2 + b;
+        b = g2 >>> 26;
+        g2 &= 0x3ffffff;
+        g3 = h3 + b;
+        b = g3 >>> 26;
+        g3 &= 0x3ffffff;
         g4 = h4 + b - (1 << 26);
 
         b = (g4 >>> 31) - 1;
@@ -275,10 +455,10 @@ public class Poly1305
         h3 = (h3 & nb) | (g3 & b);
         h4 = (h4 & nb) | (g4 & b);
 
-        f0 = (((h0       ) | (h1 << 26)) & 0xffffffffl) + (0xffffffffL & k0);
-        f1 = (((h1 >>> 6 ) | (h2 << 20)) & 0xffffffffl) + (0xffffffffL & k1);
+        f0 = (((h0) | (h1 << 26)) & 0xffffffffl) + (0xffffffffL & k0);
+        f1 = (((h1 >>> 6) | (h2 << 20)) & 0xffffffffl) + (0xffffffffL & k1);
         f2 = (((h2 >>> 12) | (h3 << 14)) & 0xffffffffl) + (0xffffffffL & k2);
-        f3 = (((h3 >>> 18) | (h4 << 8 )) & 0xffffffffl) + (0xffffffffL & k3);
+        f3 = (((h3 >>> 18) | (h4 << 8)) & 0xffffffffl) + (0xffffffffL & k3);
 
         Pack.intToLittleEndian((int)f0, out, outOff);
         f1 += (f0 >>> 32);
@@ -294,7 +474,10 @@ public class Poly1305
 
     public void reset()
     {
-        currentBlockOffset = 0;
+        wordPos = 0;
+        blockPos = 0;
+
+        t1 = t2 = t3 = t4 = 0;
 
         h0 = h1 = h2 = h3 = h4 = 0;
     }
