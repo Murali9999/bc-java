@@ -1,10 +1,14 @@
 package org.bouncycastle.crypto.macs;
 
+import java.lang.reflect.Field;
+
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.DataLengthException;
 import org.bouncycastle.crypto.Mac;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.util.Pack;
+
+import sun.misc.Unsafe;
 
 /**
  * Implementation of SipHash as specified in "SipHash: a fast short-input PRF", by Jean-Philippe
@@ -92,10 +96,10 @@ public class SipHash
 
             if (++wordPos == 8)
             {
-                processWord(val);
+                processWord(m);
                 wordPos = 0;
             }
-
+            this.val = m;
         }
 
         public void update(byte[] input, int offset, int length)
@@ -125,7 +129,7 @@ public class SipHash
                 int fullWords = ((end - i) & ~7) + offset;
                 for (; i < fullWords; i += 8)
                 {
-                    m = Pack.littleEndianToLong(input, i);
+                    m = unsafe.getLong(input, (long)(i + byteArrayOffset));
                     processWord(m);
                 }
                 wordPos = end - i;
@@ -139,6 +143,57 @@ public class SipHash
         }
 
         protected abstract void processWord(long m);
+    }
+
+    private static Unsafe unsafe;
+    private static int byteArrayOffset;
+
+    static
+    {
+        try
+        {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            unsafe = (Unsafe)field.get(null);
+            byteArrayOffset = unsafe.arrayBaseOffset(byte[].class);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static abstract class BufferedLong2
+    {
+        public byte[] currentBlock = new byte[8];
+        public int wordPos = 0;
+
+        public void update(byte input)
+        {
+
+        }
+
+        public void update(byte[] input, int offset, int len)
+        {
+            int copied = 0;
+            while (len > copied)
+            {
+                if (wordPos == 8)
+                {
+                    long m = Pack.littleEndianToLong(currentBlock, 0);
+                    processWord(m);
+                    wordPos = 0;
+                }
+
+                int toCopy = Math.min((len - copied), 8 - wordPos);
+                System.arraycopy(input, copied + offset, currentBlock, wordPos, toCopy);
+                copied += toCopy;
+                wordPos += toCopy;
+            }
+        }
+
+        protected abstract void processWord(long m);
+
     }
 
     public class SipHashBufferedLong
@@ -175,7 +230,7 @@ public class SipHash
 
         processMessageWord(m);
 
-        this.m.val = m;
+        // this.m.val = m;
 
         v2 ^= 0xffL;
 
