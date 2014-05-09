@@ -8,6 +8,16 @@ Pending contributions are in feature branches, accepted contributions live on on
 
 ### In Progress
 
+#### [Faster AESFastEngine.](https://github.com/timw/bc-java/commits/feature/aes-fast-engine) (May 9 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/72)
+
+* Eliminate some array range checking in AESFastEngine to make it actually faster than AESEngine
+
+AESFastEngine is slower than AESEngine despite pre-computing more, due to the additional array range checking incurred by having 4 table lookup arrays (vs only one in AESEngine).
+This change compacts all of the tables into a single table, trading off an offset addition on the lookup for removing the range checking.
+Registerisation of the state variables on encrypt is also done for an additional speed bump.
+
 #### [JavaDoc and parameter validation for Scrypt.](https://github.com/timw/bc-java/commits/feature/scrypt-docs-params) (March 12 2014)
 
 [pull request](https://github.com/bcgit/bc-java/pull/62)
