@@ -2,6 +2,7 @@ package org.bouncycastle.crypto;
 
 /**
  * the interface stream ciphers conform to.
+ * @deprecated
  */
 public interface StreamCipher
 {

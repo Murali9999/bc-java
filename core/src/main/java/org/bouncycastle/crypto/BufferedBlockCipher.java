@@ -1,5 +1,7 @@
 package org.bouncycastle.crypto;
 
+import org.bouncycastle.crypto.a.NewBlockCipherMode;
+
 
 /**
  * A wrapper class that allows block ciphers to be used to process data in
@@ -8,8 +10,11 @@ package org.bouncycastle.crypto;
  * <p>
  * Note: in the case where the underlying cipher is either a CFB cipher or an
  * OFB one the last block may not be a multiple of the block size.
+ * 
+ * @deprecated
  */
 public class BufferedBlockCipher
+    implements NewBlockCipherMode
 {
     protected byte[]        buf;
     protected int           bufOff;
@@ -66,6 +71,11 @@ public class BufferedBlockCipher
     public BlockCipher getUnderlyingCipher()
     {
         return cipher;
+    }
+    
+    public String getAlgorithmName()
+    {
+        return cipher.getAlgorithmName();
     }
 
     /**

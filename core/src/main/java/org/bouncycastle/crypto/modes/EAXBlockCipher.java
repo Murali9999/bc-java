@@ -6,6 +6,7 @@ import org.bouncycastle.crypto.DataLengthException;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.Mac;
 import org.bouncycastle.crypto.OutputLengthException;
+import org.bouncycastle.crypto.a.NewAEADBlockCipherMode;
 import org.bouncycastle.crypto.macs.CMac;
 import org.bouncycastle.crypto.params.AEADParameters;
 import org.bouncycastle.crypto.params.ParametersWithIV;
@@ -25,7 +26,7 @@ import org.bouncycastle.util.Arrays;
  * Of course, this implementations is NOT thread-safe.
  */
 public class EAXBlockCipher
-    implements AEADBlockCipher
+    implements AEADBlockCipher, NewAEADBlockCipherMode
 {
     private static final byte nTAG = 0x0;
 

@@ -18,6 +18,7 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
  * failure. The higher level protocol utilising this cipher must ensure the plaintext data is handled 
  * appropriately until the end of data is reached and the entire ciphertext is authenticated.
  * @see org.bouncycastle.crypto.params.AEADParameters
+ * @deprecated
  */
 public interface AEADBlockCipher
 {
