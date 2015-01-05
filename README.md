@@ -6,9 +6,39 @@ Pending contributions are in feature branches, accepted contributions live on on
 
 ### Proposed
 
+#### [BCrypt implementation](https://github.com/timw/bc-java/commits/feature/bcrypt) (3 July 2014)
+  
+* Implementation of raw and OpenBSD/crypt style bcrypt password hash functions.
+
 ### In Progress
 
-#### [Faster AESFastEngine.](https://github.com/timw/bc-java/commits/feature/aes-fast-engine) (May 9 2014)
+### Experimental Stuff
+
+#### [Simon and Speck Ciphers](https://github.com/timw/bc-java/commits/feature/simon-speck) (24 July 2013)
+  
+[pull request](https://github.com/bcgit/bc-java/pull/76)
+
+* Implementation of the [Simon and Speck families of lightweight block ciphers](http://eprint.iacr.org/2013/404).
+* All block/key size variants are implemented, with JCE registrations and tests against published test vectors.
+
+Speck in 32/64 bit word variants performs well in Java, although slower than Threefish due to the smaller block sizes.
+Community cryptanalysis of Simon/Speck is at a very early stage, so not proposing this for BC at present.
+
+### Accepted
+
+#### [Improved PGP file encryption/decryption docs.](https://github.com/timw/bc-java/tree/contrib/pgp-encrypt-docs) (16 Jun 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/75)
+
+* Improvements to the JavaDoc for the PGP APIs involved in file encryption/decryption (i.e. as used by the PBEFileProcessor sample).
+
+#### [More encodable digests.](https://github.com/timw/bc-java/tree/contrib/pgp-encrypt-docs) (27 May 2014)
+
+[pull request](https://github.com/bcgit/bc-java/pull/74)
+
+* Extend EncodableDigest implementation to LongDigest based SHA-2 digests.
+
+#### [Faster AESFastEngine.](https://github.com/timw/bc-java/tree/contrib/aes-fast-engine) (May 9 2014)
 
 [pull request](https://github.com/bcgit/bc-java/pull/72)
 
@@ -18,23 +48,11 @@ AESFastEngine is slower than AESEngine despite pre-computing more, due to the ad
 This change compacts all of the tables into a single table, trading off an offset addition on the lookup for removing the range checking.
 Registerisation of the state variables on encrypt is also done for an additional speed bump.
 
-#### [JavaDoc and parameter validation for Scrypt.](https://github.com/timw/bc-java/commits/feature/scrypt-docs-params) (March 12 2014)
+#### [JavaDoc and parameter validation for Scrypt.](https://github.com/timw/bc-java/tree/contrib/scrypt-docs-params) (March 12 2014)
 
 [pull request](https://github.com/bcgit/bc-java/pull/62)
 
 * JavaDoc, parameter validation and tests covering parameter validation for Scrypt.
-
-### Experimental Stuff
-
-#### [Simon and Speck Ciphers](https://github.com/timw/bc-java/commits/feature/simon-speck) (24 July 2013)
-  
-* Implementation of the [Simon and Speck families of lightweight block ciphers](http://eprint.iacr.org/2013/404).
-* All block/key size variants are implemented, with JCE registrations and tests against published test vectors.
-
-Speck in 32/64 bit word variants performs well in Java, although slower than Threefish due to the smaller block sizes.
-Community cryptanalysis of Simon/Speck is at a very early stage, so not proposing this for BC at present.
-
-### Accepted
 
 #### [SipHash KeyGenerator regs in JCE and spec docs](https://github.com/timw/bc-java/tree/contrib/siphash-jce) (March 12 2014)
 
