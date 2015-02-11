@@ -8,6 +8,13 @@ Pending contributions are in feature branches, accepted contributions live on on
 
 ### In Progress
 
+#### [ChaCha20 + Poly1305 AEAD](https://github.com/timw/bc-java/commits/feature/chacha-96bit-iv-aead) (11 Feb 2015)
+  
+[pull request](https://github.com/bcgit/bc-java/pull/108)
+
+* Implementation of the ChaCha20/Poly1305 AEAD construction from draft-irtf-cfrg-chacha20-poly1305.
+* Extension of ChaChaEngine to support 96 bit nonce / 32 bit counter split.
+
 ### Experimental Stuff
 
 #### [Simon and Speck Ciphers](https://github.com/timw/bc-java/commits/feature/simon-speck) (24 July 2013)
