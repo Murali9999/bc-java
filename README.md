@@ -6,18 +6,12 @@ Pending contributions are in feature branches, accepted contributions live on on
 
 ### Proposed
 
-#### [BCrypt implementation](https://github.com/timw/bc-java/commits/feature/bcrypt) (3 July 2014)
-  
-* Implementation of raw and OpenBSD/crypt style bcrypt password hash functions.
-
 ### In Progress
 
 ### Experimental Stuff
 
 #### [Simon and Speck Ciphers](https://github.com/timw/bc-java/commits/feature/simon-speck) (24 July 2013)
   
-[pull request](https://github.com/bcgit/bc-java/pull/76)
-
 * Implementation of the [Simon and Speck families of lightweight block ciphers](http://eprint.iacr.org/2013/404).
 * All block/key size variants are implemented, with JCE registrations and tests against published test vectors.
 
@@ -25,6 +19,13 @@ Speck in 32/64 bit word variants performs well in Java, although slower than Thr
 Community cryptanalysis of Simon/Speck is at a very early stage, so not proposing this for BC at present.
 
 ### Accepted
+
+#### [BCrypt implementation](https://github.com/timw/bc-java/tree/contrib/bcrypt-orig) (3 July 2014)
+  
+[pull request](https://github.com/bcgit/bc-java/pull/76)
+
+* Merged/modified with other submission
+* Implementation of raw and OpenBSD/crypt style bcrypt password hash functions.
 
 #### [Improved PGP file encryption/decryption docs.](https://github.com/timw/bc-java/tree/contrib/pgp-encrypt-docs) (16 Jun 2014)
 
